@@ -524,6 +524,8 @@ impl InternalState {
         let mut zero_blocks: u32 = self.fs + 1;
         self.fs_drop();
 
+        println!("Zero blocks: {}", zero_blocks);
+
         if zero_blocks == ROS {
             let b = (self.rsi_used_size() as i32) / self.block_size as i32;
             zero_blocks = std::cmp::min(self.rsi as i32 - b, 64 - (b % 64)) as u32;
@@ -534,15 +536,15 @@ impl InternalState {
         let reff = self.reff as u32;
 
         let zero_samples = (zero_blocks * self.block_size - reff) as usize;
-        if (self.rsi_size - self.rsi_used_size()) < zero_samples {
-            return DecodeStatus::Error(format!(
-                "Not enough space to write zero samples: size {} used {} needed {} blocks: {}",
-                self.rsi_size,
-                self.rsi_used_size(),
-                zero_samples,
-                zero_blocks
-            ));
-        }
+        // if (self.rsi_size - self.rsi_used_size()) < zero_samples {
+        //     return DecodeStatus::Error(format!(
+        //         "Not enough space to write zero samples: size {} used {} needed {} blocks: {}",
+        //         self.rsi_size,
+        //         self.rsi_used_size(),
+        //         zero_samples,
+        //         zero_blocks
+        //     ));
+        // }
         let zero_bytes = (zero_samples as usize) * self.bytes_per_sample;
         if self.avail_out >= zero_bytes {
             for _ in 0..zero_samples {
@@ -864,6 +866,9 @@ pub fn extract_ccsds_data(
     let nbytes_per_sample: usize = (bits_per_sample + 7) / 8;
 
     let flags = modify_aec_flags(Flags::from_bits_truncate(compression_options_mask));
+
+    println!("New internal state: bits_per_sample: {}, block_len: {}, reference_sample_interval: {}, flags: {:?}, avail_out: {}, data length: {}", 
+        bits_per_sample, block_len, reference_sample_interval, flags, avail_out, data.len());
 
     // Prepare the input stream
     let state_or_error = InternalState::new(
